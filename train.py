@@ -8,12 +8,12 @@ from data_utils import LoadDatasetFromFolder, DA_DatasetFromFolder, calMetric_io
 import numpy as np
 import random
 from model.network import CDNet
-from train_options import parser
+
 import itertools
 from loss.losses import cross_entropy
 
-args = parser.parse_args()
-os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # set seeds

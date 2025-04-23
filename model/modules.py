@@ -28,19 +28,25 @@ class PreNorm(nn.Module):
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
 
+'''
+    FFN模块
+'''
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout = 0.):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
+            nn.Linear(dim, hidden_dim), # 特征扩展	[B, N, D] → [B, N, hidden_dim]
+            nn.GELU(), #  激活函数	形状不变 [B, N, hidden_dim]
+            nn.Dropout(dropout), # 随机失活	形状不变 [B, N, hidden_dim]
+            nn.Linear(hidden_dim, dim), # 特征压缩	[B, N, hidden_dim] → [B, N, D]
+            nn.Dropout(dropout) # 	随机失活	形状不变 [B, N, D]
         )
     def forward(self, x):
         return self.net(x)
 
+'''
+    MHA模块
+'''
 class Attention(nn.Module):
     def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
         super().__init__()
@@ -59,21 +65,26 @@ class Attention(nn.Module):
         ) if project_out else nn.Identity()
 
     def forward(self, x):
-        qkv = self.to_qkv(x).chunk(3, dim = -1)
-
+        # 输入x B tolen_len C    输出3 × [B, token_len, C]
+        qkv = self.to_qkv(x).chunk(3, dim = -1) #
+        # Q K V 每个都是[B, h, token_len, C]
+        # 实际上就是对应 MHA Blocks片段执行流程
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
 
         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-
+        # attn运算
         attn = self.attend(dots)
 
         out = torch.matmul(attn, v)
 
         out = rearrange(out, 'b h n d -> b n (h d)')
         out = self.to_out(out)
-
+        # 最终输出格式：[B,token_len,C]
         return out
 
+'''
+    transformer编码器
+'''
 class Transformer(nn.Module):
     def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
         super().__init__()

@@ -6,7 +6,7 @@ from data_utils import  TestDatasetFromFolder, calMetric_iou
 from tqdm import tqdm
 import argparse
 import numpy as np
-from models.mscanet.network import CDNet
+from model.network import CDNet
 from PIL import Image
 
 
